@@ -1,18 +1,17 @@
 package org.example;
 
 import swiftbot.*;
+import java.util.Scanner;
 
 public class ThirdLightCheckHandler {
 
     private SwiftBotAPI swiftBot;
-
     private int totalLightCount = 0;
-
-    private boolean hasUserSelected = false;
-    private boolean isTerminationCalled = false;
+    private final Scanner scanner;
 
     public ThirdLightCheckHandler(SwiftBotAPI swiftBot) {
         this.swiftBot = swiftBot;
+        this.scanner = new Scanner(System.in);
     }
 
     public boolean thridLightHandler() throws InterruptedException {
@@ -27,41 +26,40 @@ public class ThirdLightCheckHandler {
 
             swiftBot.stopMove();
             swiftBot.disableUnderlights();
+            swiftBot.disableAllButtons();
 
             System.out.println("\n========================================");
             System.out.println("3 TRAFFIC LIGHTS COMPLETED");
-            System.out.println("Press Button Y to CONTINUE");
-            System.out.println("Press Button X to TERMINATE");
+            System.out.println("CHECKPOINT REACHED");
+            System.out.println("Enter 'C' to CONTINUE");
+            System.out.println("Enter 'X' to TERMINATE");
             System.out.println("========================================\n");
 
-            hasUserSelected = false;
-            isTerminationCalled = false;
+            while (true) {
+                System.out.print("Checkpoint choice (C/X): ");
+                String input = scanner.nextLine().trim().toUpperCase();
 
-            swiftBot.disableAllButtons();
+                if (input.equals("C")) {
+                    System.out.println("\n========================================");
+                    System.out.println("CONTINUE SELECTED");
+                    System.out.println("Resuming normal operation...");
+                    System.out.println("========================================\n");
+                    return false;
+                }
 
-            swiftBot.enableButton(Button.X, () -> {
-                isTerminationCalled = true;
-                hasUserSelected = true;
-            });
+                if (input.equals("X")) {
+                    System.out.println("\n========================================");
+                    System.out.println("TERMINATION SELECTED");
+                    System.out.println("Returning control to controller...");
+                    System.out.println("========================================\n");
+                    return true;
+                }
 
-            swiftBot.enableButton(Button.Y, () -> {
-                isTerminationCalled = false;
-                hasUserSelected = true;
-            });
-
-            while (hasUserSelected == false) {
-                Thread.sleep(200);
+                System.out.println("\n----------------------------------------");
+                System.out.println("ERROR: Invalid checkpoint input.");
+                System.out.println("Please enter C to continue or X to terminate.");
+                System.out.println("----------------------------------------\n");
             }
-
-            swiftBot.disableAllButtons();
-
-            if (isTerminationCalled == true) {
-                System.out.println("[X] Termination selected. Going to termination screen...");
-                return true;
-            }
-
-            System.out.println("[Y] Continue selected. Resuming movement...");
-            return false;
         }
 
         return false;

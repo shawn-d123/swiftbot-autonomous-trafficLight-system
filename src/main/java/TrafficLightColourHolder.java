@@ -4,5 +4,5 @@ public enum TrafficLightColourHolder {
     RED,
     GREEN,
     BLUE,
-    Null
+    UNKNOWN
 }

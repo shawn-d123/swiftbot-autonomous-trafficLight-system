@@ -29,7 +29,7 @@ public class TrafficLightColourDetector {
         } catch (Exception e) {
 
             System.out.println("Error detecting colour");
-            return TrafficLightColourHolder.Null;
+            return TrafficLightColourHolder.UNKNOWN;
 
         }
     }
@@ -49,7 +49,7 @@ public class TrafficLightColourDetector {
 
                 int rgb = image.getRGB(x, y);
 
-                int r = (rgb >> 16) & 0xFF;
+                int r = (rgb >> 16) & 0xFF; /// check what this does
                 int g = (rgb >> 8) & 0xFF;
                 int b = rgb & 0xFF;
 
@@ -83,6 +83,6 @@ public class TrafficLightColourDetector {
             return TrafficLightColourHolder.BLUE;
         }
 
-        return TrafficLightColourHolder.Null;
+        return TrafficLightColourHolder.UNKNOWN;
     }
 }

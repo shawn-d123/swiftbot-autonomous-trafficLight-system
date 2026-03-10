@@ -33,7 +33,6 @@ public class TrafficLightBehaviourHandler {
 
         else {
             System.out.println("Unknown colour detected. Continuing...");
-            swiftBot.startMove(initialSpeed, initialSpeed);
         }
     }
 
@@ -86,17 +85,12 @@ public class TrafficLightBehaviourHandler {
         System.out.println("Red light behaviour: STOP");
 
         int[] red = {255, 0, 0};
-        int[] yellow = {255, 255, 0};
 
         swiftBot.fillUnderlights(red);
 
         stopAtRedLight();
 
         Thread.sleep(1000);
-
-        swiftBot.fillUnderlights(yellow);
-
-        swiftBot.startMove(initialSpeed, initialSpeed);
     }
 
     private void greenLightHandler() throws InterruptedException {
@@ -104,7 +98,6 @@ public class TrafficLightBehaviourHandler {
         System.out.println("Green light behaviour: PASS");
 
         int[] green = {0, 255, 0};
-        int[] yellow = {255, 255, 0};
 
         swiftBot.fillUnderlights(green);
 
@@ -113,10 +106,6 @@ public class TrafficLightBehaviourHandler {
         swiftBot.stopMove();
 
         Thread.sleep(1000);
-
-        swiftBot.fillUnderlights(yellow);
-
-        swiftBot.startMove(initialSpeed, initialSpeed);
     }
 
     private void blueLightHandler() throws InterruptedException {
@@ -124,7 +113,6 @@ public class TrafficLightBehaviourHandler {
         System.out.println("Blue light behaviour: GIVE WAY");
 
         int[] blue = {0, 0, 255};
-        int[] yellow = {255, 255, 0};
 
         swiftBot.stopMove();
 
@@ -153,10 +141,6 @@ public class TrafficLightBehaviourHandler {
         // turn back right
         swiftBot.move(40, -40, 650);
         swiftBot.stopMove();
-
-        swiftBot.fillUnderlights(yellow);
-
-        swiftBot.startMove(initialSpeed, initialSpeed);
     }
 
 }

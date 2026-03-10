@@ -10,17 +10,23 @@ public class TrafficLightMainController {
     private static int detectionInterval; // ms (how often we check)
 
     private static final double detectionDistance = 30.0; // cm (fixed requirement)
+    private static boolean isSystemRunning = true;
+    private static boolean terminationCalled = false;
+    private static boolean isHandlingLight = false;
 
     public static void main(String[] args) throws InterruptedException {
 
         SwiftBotAPI swiftBot = SwiftBotAPI.INSTANCE;
+        isSystemRunning = true;
+        terminationCalled = false;
+        isHandlingLight = false;
 
         // Additional functionality FIRST
         selectDrivingMode();
 
         // Welcome + start gate
         displayWelcomeScreen();
-        buttonAPause(swiftBot);
+        buttonAPause(swiftBot); /// what does this do???
 
         // Start timer only when the run begins
         TerminationHandler terminationHandler = new TerminationHandler();
@@ -36,49 +42,76 @@ public class TrafficLightMainController {
         int[] yellow = {255, 255, 0};
         swiftBot.fillUnderlights(yellow);
 
+        enableRuntimeTermination(swiftBot);
+
         // Begin forward movement
         swiftBot.startMove(initialSpeed, initialSpeed);
 
-        while (true) {
+        while (isSystemRunning) {
+            if (terminationCalled == true) {
+                isSystemRunning = false;
+                break;
+            }
+
+            if (isHandlingLight == true) {
+                Thread.sleep(detectionInterval);
+                continue;
+            }
 
             double distance = swiftBot.useUltrasound();
 
             // Only process when within 30cm
             if (distance > 0 && distance <= detectionDistance) {
+                isHandlingLight = true;
+                try {
+                    // swiftBot.stopMove();
+                    // Thread.sleep(300); // stabilize camera reading
 
-                swiftBot.stopMove();
-                Thread.sleep(300); // stabilize camera reading
+                    TrafficLightColourHolder colour = detector.detectColour();
 
-                TrafficLightColourHolder colour = detector.detectColour();
+                    System.out.println("Distance: " + String.format("%.2f", distance) + " cm");
+                    System.out.println("Colour: " + colour);
 
-                System.out.println("Distance: " + String.format("%.2f", distance) + " cm");
-                System.out.println("Colour: " + colour);
+                    /// might be better to call incrementation from the behaviour handler after the behaviour is executed, in case we want to have different counting logic for different behaviours in the future (e.g. only count if we successfully passed a green light, or only count red lights that we stopped at, etc.)
+                    if (colour != TrafficLightColourHolder.UNKNOWN) {
+                        terminationHandler.incrementLightCount(colour);
+                    }
 
-                if (colour != TrafficLightColourHolder.Null) {
-                    terminationHandler.incrementLightCount(colour);
+                    behaviour.callLightBehaviours(colour);
+
+                    boolean terminate = false;
+
+                    if (colour != TrafficLightColourHolder.UNKNOWN) {
+                        terminate = thirdlighthandler.thridLightHandler();
+                    }
+
+                    if (terminate == true) {
+                        terminationCalled = true;
+                    }
+                    else if (terminationCalled == false) {
+                        swiftBot.fillUnderlights(yellow);
+                        swiftBot.startMove(initialSpeed, initialSpeed);
+                    }
+
+                    // avoid re-detecting the same light instantly
+                    Thread.sleep(800);
+                    /// use a flag to indicate we are in the "post-detection cooldown" instead of sleeping the thread,
+                    ////which also blocks button presses. This is a problem because we want to be able to terminate at any time, even during cooldown.
                 }
-
-                behaviour.callLightBehaviours(colour);
-
-                boolean terminate = false;
-
-                if (colour != TrafficLightColourHolder.Null) {
-                    terminate = thirdlighthandler.thridLightHandler();
+                finally {
+                    isHandlingLight = false;
+                    enableRuntimeTermination(swiftBot);
                 }
-
-                if (terminate == true) {
-                    terminationHandler.terminationScreen(swiftBot);
-                }
-                else {
-                    swiftBot.startMove(initialSpeed, initialSpeed);
-                }
-
-                // avoid re-detecting the same light instantly
-                Thread.sleep(800);
             }
 
             // This is the DRIVING MODE detection frequency
-            Thread.sleep(detectionInterval);
+            Thread.sleep(detectionInterval); /// use the flag
+        }
+
+        boolean hasTerminated = terminationHandler.terminationScreen(swiftBot);
+
+        if (hasTerminated == true) {
+            System.exit(0);
         }
     }
 
@@ -99,6 +132,7 @@ public class TrafficLightMainController {
 
             String input = scanner.nextLine().trim();
 
+            // validation but needs to be more robust (e.g. handle non-integer input without crashing)
             if (input.equals("1")) {
                 initialSpeed = 40;
                 greenPassSpeed = 50;
@@ -148,6 +182,7 @@ public class TrafficLightMainController {
         System.out.println("========================================\n");
     }
 
+    /// explain this one - it waits for button A to be pressed before starting the main loop, which is important because we don't want the robot to start moving before the user is ready. It also disables all buttons first to ensure that only button A can be used to start the system, preventing any accidental presses of other buttons from interfering with the startup process.
     private static void buttonAPause(SwiftBotAPI swiftBot) throws InterruptedException {
 
         final boolean[] started = {false};
@@ -162,5 +197,20 @@ public class TrafficLightMainController {
 
         swiftBot.disableAllButtons();
         System.out.println("Button A pressed. Starting...\n");
+    }
+
+    private static void enableRuntimeTermination(SwiftBotAPI swiftBot) {
+        try {
+            // Prevent duplicate callback binding when this method is called multiple times.
+            swiftBot.disableButton(Button.X);
+        } catch (Exception ignored) {
+            // Safe to ignore if Button X is already disabled.
+        }
+
+        swiftBot.enableButton(Button.X, () -> {
+            terminationCalled = true;
+            swiftBot.stopMove();
+            System.out.println("Termination requested. Preparing to stop...");
+        });
     }
 }

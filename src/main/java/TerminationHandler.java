@@ -18,7 +18,7 @@ public class TerminationHandler {
     private String userChoice = "";
 
 
-    public void terminationScreen(SwiftBotAPI swiftBot){
+    public boolean terminationScreen(SwiftBotAPI swiftBot){
 
         isChoiceMade = false;
         userChoice = "";
@@ -43,29 +43,31 @@ public class TerminationHandler {
             isChoiceMade = true;
         });
 
-        while(isChoiceMade == false){
+        while(isChoiceMade == false){ /// might use a flag instead of while loop to wait for user input
             try {
                 Thread.sleep(300);
             } catch (InterruptedException ignored) {}
         }
         swiftBot.disableAllButtons();
+        String finalLogInfo = createLogInfo();
 
         if (userChoice.equals("Y")) {
 
             System.out.println("\n----- LOG INFORMATION -----");
-            System.out.println(createLogInfo());
+            System.out.println(finalLogInfo);
 
             try { Thread.sleep(2000);
             } catch (InterruptedException ignored) {}
 
-            finalTermination(swiftBot);
+            finalTermination(swiftBot, finalLogInfo);
         }
 
         if (userChoice.equals("X")) {
             // Final termination: write log + shutdown + exit
-            finalTermination(swiftBot);
+            finalTermination(swiftBot, finalLogInfo);
         }
 
+        return true;
     }
 
     public void startTimer() {
@@ -128,10 +130,9 @@ public class TerminationHandler {
         return "Most frequent colour was " + mostFrequentColour + " encountered " + highestCount + " times";
     }
 
-    public String logging(){
+    public String logging(String logInformation){
 
         String filePath = "/data/home/pi/trafficLight_log.txt";
-        String logInformation = createLogInfo();
 
         try{
             //for appending to existing log file.
@@ -147,17 +148,17 @@ public class TerminationHandler {
     }
 
 
-    public void finalTermination(SwiftBotAPI swiftBot) {
+    public void finalTermination(SwiftBotAPI swiftBot, String logInformation) {
 
-        // write log to file
-        String filePath = logging();
+        // write log to file and get file path
+        String filePath = logging(logInformation);
         System.out.println("Log file stored at: " + filePath);
 
         try {
             swiftBot.stopMove();
             swiftBot.disableUnderlights();
             swiftBot.disableAllButtons();
-            System.exit(0);
+            System.out.println("Program terminated. Goodbye.");
         } catch (Exception e) {
             System.out.println("Termination error");
         }
