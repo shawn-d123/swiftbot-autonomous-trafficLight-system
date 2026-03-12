@@ -1,64 +1,81 @@
+/*
+ * Tracks the number of valid traffic lights encountered during the run and
+ * prompts the user to continue or terminate at every third light via CLI input.
+ */
+
 package org.example;
 
 import swiftbot.*;
 import java.util.Scanner;
 
+/**
+ * Handles the every-third-light checkpoint for the SwiftBot Traffic Light
+ * Navigation System. Maintains its own light counter and, when a multiple
+ * of three is reached, stops the SwiftBot, displays the checkpoint screen,
+ * and blocks until the user enters a valid continue (C) or terminate (X) choice.
+ */
 public class ThirdLightCheckHandler {
 
-    private SwiftBotAPI swiftBot;
+    // Number of lights between each checkpoint prompt
+    private static final int CHECKPOINT_INTERVAL = 3;
+
+    private final SwiftBotAPI swiftBot;
+
+    /* Running count of valid lights handled since the session started. */
     private int totalLightCount = 0;
+
+    /* Scanner held open for the lifetime of the session to read checkpoint input. */
     private final Scanner scanner;
 
+    /**
+     * Creates a ThirdLightCheckHandler with the given SwiftBot instance.
+     * @param swiftBot the SwiftBot API instance used to stop movement at checkpoints.
+     */
     public ThirdLightCheckHandler(SwiftBotAPI swiftBot) {
         this.swiftBot = swiftBot;
-        this.scanner = new Scanner(System.in);
+        this.scanner  = new Scanner(System.in);
     }
 
+    /**
+     * Increments the internal light counter and, if the count is a multiple of
+     * CHECKPOINT_INTERVAL, stops the SwiftBot and prompts the user to continue
+     * or terminate. Blocks until a valid input (C or X) is entered.
+     * @return true if the user chose to terminate; false to continue the run.
+     * @throws InterruptedException if the thread is interrupted while waiting.
+     */
+    // IMPROVEMENT: method name has a typo — "thrid" should be "third"
     public boolean thridLightHandler() throws InterruptedException {
 
         totalLightCount++;
 
         System.out.println("\n----------------------------------------");
-        System.out.println("Traffic lights handled: " + totalLightCount);
+        System.out.println("Traffic Lights Encountered: " + totalLightCount);
         System.out.println("----------------------------------------\n");
 
-        if (totalLightCount % 3 == 0) {
+        // Only trigger the checkpoint prompt on every third light
+        if (totalLightCount % CHECKPOINT_INTERVAL == 0) {
 
+            // Stop the bot and clear the state
             swiftBot.stopMove();
             swiftBot.disableUnderlights();
             swiftBot.disableAllButtons();
 
-            System.out.println("\n========================================");
-            System.out.println("3 TRAFFIC LIGHTS COMPLETED");
-            System.out.println("CHECKPOINT REACHED");
-            System.out.println("Enter 'C' to CONTINUE");
-            System.out.println("Enter 'X' to TERMINATE");
-            System.out.println("========================================\n");
+            TrafficLightMainController.displayThirdLightCheckpointScreen();
 
+            // Keep reading input until the user enters C or X
             while (true) {
-                System.out.print("Checkpoint choice (C/X): ");
                 String input = scanner.nextLine().trim().toUpperCase();
 
                 if (input.equals("C")) {
-                    System.out.println("\n========================================");
-                    System.out.println("CONTINUE SELECTED");
-                    System.out.println("Resuming normal operation...");
-                    System.out.println("========================================\n");
-                    return false;
+                    return false; // Continue the run
                 }
 
                 if (input.equals("X")) {
-                    System.out.println("\n========================================");
-                    System.out.println("TERMINATION SELECTED");
-                    System.out.println("Returning control to controller...");
-                    System.out.println("========================================\n");
-                    return true;
+                    return true; // Terminate the run
                 }
 
-                System.out.println("\n----------------------------------------");
-                System.out.println("ERROR: Invalid checkpoint input.");
-                System.out.println("Please enter C to continue or X to terminate.");
-                System.out.println("----------------------------------------\n");
+                // Invalid input — show error and re-prompt
+                TrafficLightMainController.displayThirdLightCheckpointInvalidInputScreen();
             }
         }
 
